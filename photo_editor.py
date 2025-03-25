@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # PyQt imports
-from PyQt5.QtCore import Qt, QSize, QTimer, QPoint, QRect, pyqtSignal, QEvent
-from PyQt5.QtGui import QPixmap, QImage, QIcon, QPalette, QColor, QCursor, QPainter, QWheelEvent, QTouchEvent
+from PyQt5.QtCore import Qt, QSize, QTimer, QPoint, QRect, pyqtSignal, QEvent, QSettings
+from PyQt5.QtGui import QPixmap, QImage, QIcon, QPalette, QColor, QCursor, QPainter, QWheelEvent, QTouchEvent, QFont
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -33,6 +33,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QGridLayout,
+    QDesktopWidget,
+    QFontDialog,
 )
 # Local application imports
 from functions import *
@@ -226,13 +228,52 @@ class PhotoEditor(QMainWindow):
         # For comparison view
         self.comparison_mode = False
         
+        # For font size scaling
+        self.font_size = 9  # Default font size
+        self.settings = QSettings("PhotoEditor", "FontSettings")
+        self.load_settings()
+        
         # Set up the UI
         self.initUI()
         
+    def load_settings(self):
+        """Load application settings from QSettings"""
+        self.font_size = self.settings.value("font_size", 9, type=int)
+        
+    def save_settings(self):
+        """Save application settings to QSettings"""
+        self.settings.setValue("font_size", self.font_size)
+        
+    def update_font_size_from_menu(self, size):
+        """Update font size from menu selection and update checked state"""
+        # Update the font size
+        self.change_font_size(size)
+        
+        # Update the combo box selection
+        self.font_size_combobox.setCurrentIndex(self.font_size_combobox.findText(f"{size}pt"))
+        
+        # Update checked state in menu items
+        for s, action in self.font_size_actions.items():
+            action.setChecked(s == size)
+    
     def initUI(self):
-        # Set window properties
+        # Get screen dimensions
+        screen_rect = QDesktopWidget().availableGeometry()
+        screen_width = screen_rect.width()
+        screen_height = screen_rect.height()
+        
+        # Set window properties with relative sizing
         self.setWindowTitle("Photo Editor")
-        self.setGeometry(100, 100, 1200, 800)
+        
+        # Set window size to 80% of screen size
+        window_width = int(screen_width * 0.8)
+        window_height = int(screen_height * 0.8)
+        self.setGeometry(
+            (screen_width - window_width) // 2,  # Center horizontally
+            (screen_height - window_height) // 2,  # Center vertically
+            window_width,
+            window_height
+        )
         
         # Set up central widget and main layout
         self.central_widget = QWidget()
@@ -372,6 +413,35 @@ class PhotoEditor(QMainWindow):
         
         # Set the initial sizes of the splitter
         self.splitter.setSizes([800, 400])
+        
+    def select_font_dialog(self):
+        """Open font selection dialog"""
+        current_font = QApplication.font()
+        font, ok = QFontDialog.getFont(current_font, self, "Select Font")
+        if ok:
+            # Apply the font to the entire application
+            self.font_size = font.pointSize()
+            QApplication.setFont(font)
+            
+            # Re-apply styles with new font size to ensure consistency
+            apply_style(QApplication.instance(), self.font_size)
+            
+            self.status_bar.showMessage(f"Font changed to {font.family()}, {font.pointSize()}pt")
+            self.save_settings()
+        
+    def change_font_size(self, size):
+        """Change the application font size"""
+        self.font_size = size
+        
+        # Apply new font size to application
+        font = QApplication.font()
+        font.setPointSize(self.font_size)
+        QApplication.setFont(font)
+        
+        # Re-apply styles with new font size
+        apply_style(QApplication.instance(), self.font_size)
+        
+        self.save_settings()
         
     def create_basic_adjustments_tab(self):
         # Create the basic adjustments tab
@@ -807,6 +877,26 @@ class PhotoEditor(QMainWindow):
         comparison_action.triggered.connect(lambda: self.comparison_toggle.toggle())
         view_menu.addAction(comparison_action)
         
+        # Add Font Size submenu
+        font_menu = view_menu.addMenu("Font Size")
+        
+        # Font size actions
+        self.font_size_actions = {}
+        font_sizes = [7, 8, 9, 10, 11, 12, 14, 16]
+        for size in font_sizes:
+            size_action = QAction(f"{size}pt", self)
+            size_action.setCheckable(True)
+            if size == self.font_size:
+                size_action.setChecked(True)
+            size_action.triggered.connect(lambda checked, s=size: self.update_font_size_from_menu(s))
+            font_menu.addAction(size_action)
+            self.font_size_actions[size] = size_action
+            
+        # Custom font action
+        custom_font_action = QAction("Custom Font...", self)
+        custom_font_action.triggered.connect(self.select_font_dialog)
+        font_menu.addAction(custom_font_action)
+        
         # Help menu
         help_menu = menubar.addMenu("Help")
         
@@ -867,6 +957,26 @@ class PhotoEditor(QMainWindow):
         comparison_action = QAction(self.style().standardIcon(self.style().SP_FileDialogDetailedView), "Toggle Comparison", self)
         comparison_action.triggered.connect(lambda: self.comparison_toggle.toggle())
         toolbar.addAction(comparison_action)
+        
+        # Add separator
+        toolbar.addSeparator()
+        
+        # Font size controls in toolbar
+        font_size_label = QLabel("Font Size: ")
+        toolbar.addWidget(font_size_label)
+        
+        self.font_size_combobox = QComboBox()
+        self.font_size_combobox.addItems(["7pt", "8pt", "9pt", "10pt", "11pt", "12pt", "14pt", "16pt"])
+        self.font_size_combobox.setCurrentIndex(self.font_size_combobox.findText(f"{self.font_size}pt"))
+        self.font_size_combobox.currentIndexChanged.connect(
+            lambda index: self.change_font_size(int(self.font_size_combobox.currentText().replace("pt", "")))
+        )
+        toolbar.addWidget(self.font_size_combobox)
+        
+        # Custom font button
+        font_button = QAction(self.style().standardIcon(self.style().SP_DirHomeIcon), "Select Font", self)
+        font_button.triggered.connect(self.select_font_dialog)
+        toolbar.addAction(font_button)
     
     def setup_tooltips(self):
         # Basic adjustments tab
@@ -918,6 +1028,14 @@ class PhotoEditor(QMainWindow):
         self.reset_button.setToolTip("Reset the image to its original state")
         self.undo_button.setToolTip("Reverse the last change")
         
+        # Font size tooltip in toolbar
+        self.font_size_combobox.setToolTip("Change the application font size")
+        
+    def closeEvent(self, event):
+        """Save settings when the application closes"""
+        self.save_settings()
+        event.accept()
+
     # NEW: Update edge detection controls based on selected method
     def update_edge_controls(self):
         selected_method = self.edge_method_combo.currentText()
@@ -1794,9 +1912,18 @@ class PhotoEditor(QMainWindow):
         self.predefined_combo.setCurrentIndex(0)
 
 
-def apply_style(app):
+def apply_style(app, font_size=9):
+    # Save current font family before changing styles
+    current_font = app.font()
+    font_family = current_font.family()
+    
     # Set a dark theme
     app.setStyle("Fusion")
+    
+    # Create a font with the specified size
+    font = QFont(font_family)
+    font.setPointSize(font_size)
+    app.setFont(font)
     
     # Set a dark color palette
     dark_palette = QPalette()
@@ -1817,156 +1944,186 @@ def apply_style(app):
     app.setPalette(dark_palette)
     
     # Set stylesheet for more control
-    app.setStyleSheet("""
-        QMainWindow {
+    app.setStyleSheet(f"""
+        QMainWindow {{
             background-color: #303030;
-        }
-        QGroupBox {
+        }}
+        QGroupBox {{
             font-weight: bold;
             border: 1px solid #606060;
             border-radius: 5px;
             margin-top: 10px;
             padding-top: 10px;
-        }
-        QGroupBox::title {
+        }}
+        QGroupBox::title {{
             subcontrol-origin: margin;
             left: 10px;
             padding: 0 3px 0 3px;
-        }
-        QPushButton {
+        }}
+        QPushButton {{
             background-color: #4d6c8b;
             color: white;
             border: none;
             padding: 5px 10px;
             border-radius: 3px;
-        }
-        QPushButton:hover {
+            min-height: {font_size * 2}px;
+        }}
+        QPushButton:hover {{
             background-color: #607c9b;
-        }
-        QPushButton:pressed {
+        }}
+        QPushButton:pressed {{
             background-color: #3d5c7b;
-        }
-        QSlider::groove:horizontal {
+        }}
+        QSlider::groove:horizontal {{
             border: 1px solid #999999;
             height: 8px;
             background: #4d4d4d;
             margin: 2px 0;
             border-radius: 4px;
-        }
-        QSlider::handle:horizontal {
+        }}
+        QSlider::handle:horizontal {{
             background: #4d6c8b;
             border: 1px solid #5c7b9b;
             width: 18px;
             margin: -2px 0;
             border-radius: 9px;
-        }
-        QTabWidget::pane {
+        }}
+        QTabWidget::pane {{
             border: 1px solid #444;
             border-radius: 3px;
             top: -1px;
             background-color: #303030;
-        }
-        QTabBar::tab {
+        }}
+        QTabBar::tab {{
             background-color: #404040;
             color: white;
             padding: 8px 15px;
             border-top-left-radius: 3px;
             border-top-right-radius: 3px;
-        }
-        QTabBar::tab:selected {
+        }}
+        QTabBar::tab:selected {{
             background-color: #4d6c8b;
-        }
-        QTabBar::tab:hover {
+        }}
+        QTabBar::tab:hover {{
             background-color: #505050;
-        }
-        QSpinBox, QDoubleSpinBox {
+        }}
+        QSpinBox, QDoubleSpinBox {{
             background-color: #404040;
             color: white;
             border: 1px solid #505050;
             border-radius: 3px;
             padding: 2px 5px;
-        }
-        QComboBox {
+            min-height: {font_size * 1.8}px;
+        }}
+        QComboBox {{
             background-color: #404040;
             color: white;
             border: 1px solid #505050;
             border-radius: 3px;
             padding: 2px 5px;
-        }
-        QLabel {
+            min-height: {font_size * 1.8}px;
+        }}
+        QLabel {{
             color: white;
-        }
-        QMenuBar {
+        }}
+        QMenuBar {{
             background-color: #404040;
             color: white;
-        }
-        QMenuBar::item:selected {
+        }}
+        QMenuBar::item:selected {{
             background-color: #4d6c8b;
-        }
-        QMenu {
+        }}
+        QMenu {{
             background-color: #404040;
             color: white;
-        }
-        QMenu::item:selected {
+        }}
+        QMenu::item:selected {{
             background-color: #4d6c8b;
-        }
-        QScrollArea {
+        }}
+        QScrollArea {{
             background-color: #303030;
             border: 1px solid #404040;
             border-radius: 3px;
-        }
-        QStatusBar {
+        }}
+        QStatusBar {{
             background-color: #404040;
             color: white;
-        }
-        QToolBar {
+        }}
+        QToolBar {{
             background-color: #404040;
             border: none;
             spacing: 3px;
             padding: 3px;
-        }
-        QToolBar QToolButton {
+        }}
+        QToolBar QToolButton {{
             background-color: transparent;
             border-radius: 3px;
             padding: 3px;
-        }
-        QToolBar QToolButton:hover {
+        }}
+        QToolBar QToolButton:hover {{
             background-color: #505050;
-        }
-        QToolBar QToolButton:pressed {
+        }}
+        QToolBar QToolButton:pressed {{
             background-color: #3d5c7b;
-        }
-        QCheckBox {
+        }}
+        QCheckBox {{
             color: white;
             spacing: 5px;
-        }
-        QCheckBox::indicator {
+        }}
+        QCheckBox::indicator {{
             width: 15px;
             height: 15px;
             border-radius: 2px;
-        }
-        QCheckBox::indicator:unchecked {
+        }}
+        QCheckBox::indicator:unchecked {{
             background-color: #404040;
             border: 1px solid #606060;
-        }
-        QCheckBox::indicator:checked {
+        }}
+        QCheckBox::indicator:checked {{
             background-color: #4d6c8b;
             border: 1px solid #4d6c8b;
-        }
+        }}
+        QFontDialog {{
+            background-color: #404040;
+        }}
     """)
 
 def main():
+    # Enable high DPI scaling before creating QApplication
+    if hasattr(Qt, 'AA_EnableHighDpiScaling'):
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    
     app = QApplication(sys.argv)
     
-    # Apply the dark theme
-    apply_style(app)
+    # Load user settings if available
+    settings = QSettings("PhotoEditor", "FontSettings")
+    font_size = settings.value("font_size", 9, type=int)
     
     # Enable general touch input support
     app.setAttribute(Qt.AA_SynthesizeMouseForUnhandledTouchEvents, True)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app.setAttribute(Qt.AA_CompressHighFrequencyEvents, True)
     
+    # Apply the dark theme with custom font size
+    apply_style(app, font_size)
+    
     window = PhotoEditor()
+    
+    # Get available screen geometry
+    screen = app.primaryScreen()
+    screen_geometry = screen.availableGeometry()
+    screen_width = screen_geometry.width()
+    screen_height = screen_geometry.height()
+    
+    # Center the window on screen with appropriate size
+    window.setGeometry(
+        (screen_width - int(screen_width * 0.8)) // 2,
+        (screen_height - int(screen_height * 0.8)) // 2,
+        int(screen_width * 0.8),
+        int(screen_height * 0.8)
+    )
+    
     window.show()
     
     sys.exit(app.exec_())
