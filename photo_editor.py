@@ -788,8 +788,8 @@ class PhotoEditor(QMainWindow):
         self.reset_button.clicked.connect(self.reset_image)
         self.reset_button.setEnabled(False)
         
-        # Undo button (renamed to Reverse)
-        self.undo_button = QPushButton("Reverse")
+        # Undo button 
+        self.undo_button = QPushButton("Undo")
         self.undo_button.clicked.connect(self.undo_last_change)
         self.undo_button.setEnabled(False)
         
@@ -842,8 +842,8 @@ class PhotoEditor(QMainWindow):
         reset_action.triggered.connect(self.reset_image)
         edit_menu.addAction(reset_action)
         
-        # Undo action (renamed to Reverse)
-        undo_action = QAction(self.style().standardIcon(self.style().SP_ArrowBack), "Reverse", self)
+        # Undo action 
+        undo_action = QAction(self.style().standardIcon(self.style().SP_ArrowBack), "Undo", self)
         undo_action.setShortcut("Ctrl+Z")
         undo_action.triggered.connect(self.undo_last_change)
         edit_menu.addAction(undo_action)
@@ -852,19 +852,19 @@ class PhotoEditor(QMainWindow):
         view_menu = menubar.addMenu("View")
         
         # Zoom In action
-        zoom_in_action = QAction(self.style().standardIcon(self.style().SP_MediaVolume), "Zoom In", self)
-        zoom_in_action.setShortcut("Ctrl+=")  # This works for both Ctrl+ and Ctrl=
+        zoom_in_action = QAction("Zoom In", self)
+        zoom_in_action.setShortcut("Ctrl+=")  
         zoom_in_action.triggered.connect(self.zoom_in)
         view_menu.addAction(zoom_in_action)
         
         # Zoom Out action
-        zoom_out_action = QAction(self.style().standardIcon(self.style().SP_MediaVolumeMuted), "Zoom Out", self)
+        zoom_out_action = QAction("Zoom Out", self)
         zoom_out_action.setShortcut("Ctrl+-")
         zoom_out_action.triggered.connect(self.zoom_out)
         view_menu.addAction(zoom_out_action)
         
         # Reset Zoom action
-        zoom_reset_action = QAction(self.style().standardIcon(self.style().SP_MediaPlay), "Reset Zoom", self)
+        zoom_reset_action = QAction("Reset Zoom", self)
         zoom_reset_action.setShortcut("Ctrl+0")
         zoom_reset_action.triggered.connect(self.zoom_reset)
         view_menu.addAction(zoom_reset_action)
@@ -929,8 +929,8 @@ class PhotoEditor(QMainWindow):
         reset_action.triggered.connect(self.reset_image)
         toolbar.addAction(reset_action)
         
-        # Undo action (renamed to Reverse)
-        undo_action = QAction(self.style().standardIcon(self.style().SP_ArrowBack), "Reverse", self)
+        # Undo action 
+        undo_action = QAction(self.style().standardIcon(self.style().SP_ArrowBack), "Undo", self)
         undo_action.triggered.connect(self.undo_last_change)
         toolbar.addAction(undo_action)
         
@@ -938,15 +938,15 @@ class PhotoEditor(QMainWindow):
         toolbar.addSeparator()
         
         # Zoom controls
-        zoom_in_action = QAction(self.style().standardIcon(self.style().SP_MediaVolume), "Zoom In", self)
+        zoom_in_action = QAction("Zoom In", self)
         zoom_in_action.triggered.connect(self.zoom_in)
         toolbar.addAction(zoom_in_action)
         
-        zoom_reset_action = QAction(self.style().standardIcon(self.style().SP_MediaPlay), "Reset Zoom", self)
+        zoom_reset_action = QAction("Center", self)
         zoom_reset_action.triggered.connect(self.zoom_reset)
         toolbar.addAction(zoom_reset_action)
         
-        zoom_out_action = QAction(self.style().standardIcon(self.style().SP_MediaVolumeMuted), "Zoom Out", self)
+        zoom_out_action = QAction("Zoom Out", self)
         zoom_out_action.triggered.connect(self.zoom_out)
         toolbar.addAction(zoom_out_action)
         
@@ -1026,7 +1026,7 @@ class PhotoEditor(QMainWindow):
         
         # Common buttons
         self.reset_button.setToolTip("Reset the image to its original state")
-        self.undo_button.setToolTip("Reverse the last change")
+        self.undo_button.setToolTip("Undo the last change")
         
         # Font size tooltip in toolbar
         self.font_size_combobox.setToolTip("Change the application font size")

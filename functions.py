@@ -8,20 +8,16 @@ def grayscale_luminance(img):
 
 
 def grayscale_lightness(img):
-    height = len(img)
-    width = len(img[0])
-
-    img = img.astype(float)
-    img_gray = np.zeros((height, width), dtype=np.float16)
-
-    for i in range(height):
-        for j in range(width):
-            r, g, b = img[i][j]
-            img_gray[i][j] = (min(r,g,b) + max(r,g,b))/2
-            
-
-    img_gray = np.clip(img_gray, 0, 255).astype(np.uint8)
-    return img_gray
+    """Convert RGB to grayscale using lightness method (vectorized)
+    
+    Calculates grayscale using the formula: (min(R,G,B) + max(R,G,B)) / 2
+    """
+    img_float = img.astype(float)
+    min_values = np.min(img_float, axis=2)
+    max_values = np.max(img_float, axis=2)
+    img_gray = (min_values + max_values) / 2
+    
+    return np.clip(img_gray, 0, 255).astype(np.uint8)
 
 
 
