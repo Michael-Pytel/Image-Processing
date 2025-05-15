@@ -146,6 +146,10 @@ Custom kernels can be defined in the application or added to the predefined list
 
 [MIT License](LICENSE)
 
+## Authors
+- Michał Pytel [@Michael-Pytel](https://github.com/Michael-Pytel)
+- Jakub Półtorak [@JakubPoltorak147](https://github.com/JakubPoltorak147)
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
